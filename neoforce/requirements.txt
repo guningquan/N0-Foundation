@@ -1,0 +1,9 @@
+# NeoForce. Torch is intentionally unpinned here: install the build that matches your
+# CUDA runtime first (see docs/Installation.md), then install the rest.
+torch>=2.3
+torchvision>=0.18
+numpy>=1.24
+opencv-python>=4.9
+pyarrow>=14.0        # reading OpenNeoData episode metadata (index building only)
+tqdm>=4.66
+PyYAML>=6.0

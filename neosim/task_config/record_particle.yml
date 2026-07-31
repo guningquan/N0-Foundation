@@ -1,0 +1,22 @@
+# Record ONE particle visuo-tactile demo per task.
+# Video frame = head third-person view + a particle tactile panel per gel (gel_particle: marker-free silver-gray gel image,
+# with speckle motion driven by real FEM surface displacement). Requires UNIVTAC_PANEL=particle.
+#   UNIVTAC_PANEL=particle python scripts/collect_data.py <task> record_particle
+# Output: data/<task>/record_particle/video/<seed>_success.mp4
+save_dir: ./data
+decimation: 1
+save_frequency: 10        # video is the goal; hdf5 saved sparsely (byproduct only)
+video_frequency: 1        # one frame per step -> smooth video
+render_frequency: 0       # headless (cameras still render for recorded frames)
+random_texture: false
+use_seed: true
+dense_gelpad: false       # coarse 169-node mesh (fast); good enough for a demo
+episode_num: 1            # stop after 1 successful episode...
+start_seed: 0
+max_seed: 30              # ...try up to seed 30 for one clean success
+sensor_type: gsmini
+observations:
+  camera: ['rgb']
+  tactile: ['gel_particle']   # particle tactile image (drives the video panel); raw tactile/depth/force not saved
+  embodiment: ['joint', 'ee']
+  actor: true

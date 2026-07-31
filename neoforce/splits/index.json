@@ -1,0 +1,55 @@
+{
+  "root_flag": "--data-root points at the OpenNeoData directory; paths inside are relative to it",
+  "used_by": {
+    "train": "python -m neoforce.train --train-split splits/train.jsonl",
+    "val": "python -m neoforce.train --eval-split splits/val.jsonl",
+    "test": "python -m neoforce.evaluate --split splits/test.jsonl"
+  },
+  "splits": {
+    "train": {
+      "file": "splits/train.jsonl",
+      "table": "splits/train.csv",
+      "episodes": 20000,
+      "frames": 32836761,
+      "categories": 30,
+      "robots": {
+        "aloha": 4930,
+        "ur": 4303,
+        "arx5": 3563,
+        "flexiv": 3271,
+        "umi": 2747,
+        "umi_single": 1186
+      }
+    },
+    "val": {
+      "file": "splits/val.jsonl",
+      "table": "splits/val.csv",
+      "episodes": 2500,
+      "frames": 4140132,
+      "categories": 30,
+      "robots": {
+        "aloha": 606,
+        "ur": 536,
+        "arx5": 448,
+        "flexiv": 442,
+        "umi": 311,
+        "umi_single": 157
+      }
+    },
+    "test": {
+      "file": "splits/test.jsonl",
+      "table": "splits/test.csv",
+      "episodes": 2500,
+      "frames": 4182500,
+      "categories": 30,
+      "robots": {
+        "aloha": 608,
+        "ur": 539,
+        "flexiv": 445,
+        "arx5": 436,
+        "umi": 313,
+        "umi_single": 159
+      }
+    }
+  }
+}

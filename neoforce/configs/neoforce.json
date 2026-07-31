@@ -1,0 +1,103 @@
+{
+  "_desc": "NeoForce: force-field reconstruction + tactile JEPA on OpenNeoData. The decoder decodes from 1/8 resolution up to full resolution with a prediction head and a loss at every stage.",
+  "model": {
+    "backbone": "ViT-B-img360x640-patch20",
+    "tactile_full_resolution": true,
+    "force_chans": 6,
+    "mask_chans": 6,
+    "temporal_depth": 4,
+    "temporal_max_frames": 8,
+    "prototype_dim": 8192,
+    "decoder_start_stride": 8,
+    "decoder_stage_channels": [
+      128,
+      64,
+      32,
+      16
+    ],
+    "predictor_dim": 384,
+    "predictor_depth": 6,
+    "predictor_heads": 12,
+    "jepa_num_blocks": 4,
+    "jepa_block_scale": [
+      0.15,
+      0.2
+    ],
+    "jepa_block_aspect": [
+      0.75,
+      1.5
+    ],
+    "decoder_deep_supervision": true
+  },
+  "data": {
+    "root": "",
+    "index": "splits/train.jsonl",
+    "seq_len": 4,
+    "sample_stride": 8,
+    "image_size": [
+      360,
+      640
+    ],
+    "force_chans": 6,
+    "mask_chans": 6,
+    "fps": 30,
+    "force_stats": "splits/force_stats_train.json",
+    "force_norm_mode": "quantile",
+    "force_norm_quantile": 0.99,
+    "force_norm_population": "contact",
+    "sensor_device": "cpu",
+    "sensor_gpu_batch": 16,
+    "use_engine_mask": true
+  },
+  "eval_data": {
+    "root": "",
+    "index": "splits/val.jsonl",
+    "seq_len": 4,
+    "sample_stride": 256,
+    "image_size": [
+      360,
+      640
+    ],
+    "force_chans": 6,
+    "mask_chans": 6,
+    "fps": 30,
+    "force_norm_mode": "none",
+    "sensor_device": "cpu",
+    "use_engine_mask": true
+  },
+  "train": {
+    "batch_size": 1,
+    "num_workers": 12,
+    "max_steps": 100000,
+    "trunk_lr": 5e-06,
+    "head_lr": 8e-05,
+    "weight_decay": 0.05,
+    "grad_clip": 1.0,
+    "amp": true,
+    "amp_dtype": "bf16",
+    "warmup_steps": 5000,
+    "find_unused_parameters": true,
+    "teacher_temp": 0.04,
+    "ema_momentum": 0.992,
+    "touch_dropout": 0.0,
+    "log_every": 20,
+    "save_every": 5000,
+    "eval_every": 2000,
+    "eval_batches": 32
+  },
+  "loss_weights": {
+    "aux": 1.0,
+    "force": 10.0,
+    "force_global": 2.0,
+    "force_delta": 2.0,
+    "force_no_contact": 0.05,
+    "mask": 0.5,
+    "direction": 1.0,
+    "contrast": 0.05,
+    "dino_v": 0.05,
+    "dino_t": 0.05,
+    "dino_cross": 0.05,
+    "jepa_v": 0.05,
+    "jepa_t": 1.0
+  }
+}

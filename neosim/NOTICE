@@ -1,0 +1,42 @@
+NeoSim
+======
+
+This repository is a derivative work of UniVTAC:
+
+    UniVTAC: A Unified Simulation Platform for Visuo-Tactile Manipulation
+    Data Generation, Learning, and Benchmarking
+    Chen et al., arXiv:2602.10093
+    https://github.com/byml-c/UniVTAC
+
+used and modified under the MIT License. NeoSim is likewise distributed
+under the MIT License (see LICENSE), and preserves the attribution the
+license requires.
+
+Modifications and extensions by the NeoSim authors (2026) include, among
+others:
+  - A new visuo-tactile representation (`gel_particle`) and force-field
+    tooling (docs/TactileRepresentations.md)
+  - Twelve additional manipulation tasks beyond upstream's nine: four
+    single-arm (insert_USB, grasp_chip, pour_ball, phone_socket_replug)
+    and eight dual-arm (envs/dual_*.py), together with their procedurally
+    generated assets (scripts/asset_tools/), configs, and scripted experts
+  - Revised and audited evaluation success criteria across tasks
+    (e.g. insertion depth thresholds, stack/unstack alignment criteria;
+    see docs/Tasks.md)
+  - Policy-server evaluation clients (eval/) for VTA-style policies and
+    multiple baselines, plus additional task/eval configurations
+    (task_config/)
+
+Vendored third-party software:
+
+  third_party/TacEx
+    TacEx — Tactile Extension for Isaac Sim/Isaac Lab (modified copy)
+    https://github.com/DH-Ng/TacEx
+    The upstream repository declares the MIT License in its README badge
+    but does not ship a LICENSE file (as of 2026-07). This vendored,
+    modified copy is redistributed following upstream's declared MIT
+    intent and the precedent set by UniVTAC's public release; contact
+    the TacEx authors for clarification before wider redistribution.
+
+NeoSim also depends on NVIDIA Isaac Sim / Isaac Lab, cuRobo, and other
+dependencies under their respective licenses.

@@ -1,0 +1,18 @@
+decimation: 1
+episode_num: 1
+max_seed: 0
+observations:
+  actor: true
+  camera:
+  - rgb
+  embodiment:
+  - joint
+  - ee
+random_texture: false
+render_frequency: 0
+save_dir: ./data
+save_frequency: 2
+sensor_type: gsmini
+start_seed: 0
+use_seed: true
+video_frequency: 2

@@ -1,0 +1,23 @@
+# Record ONE force-visualization demo per task.
+# Video frame = head third-person view + a force-field panel per gel (force_field_img: normal force black->green->red + white shear arrows).
+# Requires UNIVTAC_FORCE_VIEW=1 -> get_frame_shot swaps the tactile panel for force_field_img.
+#   UNIVTAC_FORCE_VIEW=1 python scripts/collect_data.py <task> record_force
+# Output: data/<task>/record_force/video/<seed>_success.mp4
+save_dir: ./data
+decimation: 1
+save_frequency: 10        # video is the goal; hdf5 saved sparsely (byproduct only)
+video_frequency: 1        # one frame per step -> smooth video
+render_frequency: 0       # headless (cameras still render for recorded frames)
+random_texture: false
+use_seed: true
+dense_gelpad: false       # coarse 169-node mesh (fast); force field good enough for a demo
+force_field_grid: [64, 48]
+episode_num: 1            # stop after 1 successful episode...
+start_seed: 0
+max_seed: 30              # ...try up to seed 30 for one clean success
+sensor_type: gsmini
+observations:
+  camera: ['rgb']
+  tactile: ['force_field_img']   # force-field visualization (drives the video panel); raw tactile/depth not saved
+  embodiment: ['joint', 'ee']
+  actor: true

@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+outputs/
+eval_result/
+# Model weights are release artifacts, distributed separately from the source.
+weights/*.pt
+neoforce/visuo_tactile_conversion/model/*.pt

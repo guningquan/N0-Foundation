@@ -1,0 +1,22 @@
+decimation: 1
+episode_num: 5
+observations:
+  actor: true
+  camera:
+  - rgb
+  embodiment:
+  - joint
+  - ee
+  tactile:
+  - rgb
+  - rgb_marker
+  - marker
+  - depth
+  - pose
+random_texture: false
+render_frequency: 0
+save_dir: ./data
+save_frequency: 20
+sensor_type: gsmini
+use_seed: true
+video_frequency: 20

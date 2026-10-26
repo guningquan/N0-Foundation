@@ -15,7 +15,8 @@
 | 资产 | `neosim/assets/`，以及 `third_party/TacEx/.../tacex_assets/data/`，来自 HF `NeoteAI/NeoSim-Assets` | 否 |
 | 驱动 595 的 Vulkan 补丁层 | 已注册：`~/.local/share/vulkan/implicit_layer.d/VkLayer_n0vtla_clamp_maxalloc.json`，库文件在 `/mnt/ssd2/guningquan/Programs_server/sim_runs/vk_layer/`；源码副本在 `neosim/tools/vk_clamp_maxalloc/` | 源码在 |
 | 装包约束文件（锁定 torch 等版本） | `/mnt/ssd2/guningquan/Programs_server/sim_runs/constraints_neosim.txt`，由 `requirements.lock` 生成，生成命令见 ServerSetupNotes 第 2 节 | 否 |
-| N₀-VTLA 实验的一键脚本（采集、转换、训练、评测、统计） | `/mnt/ssd2/guningquan/Programs_server/sim_runs/scripts/` | 否 |
+| N₀-VTLA 实验的一键脚本（采集、转换、训练、评测、统计） | `/mnt/ssd2/guningquan/Programs_server/sim_runs/scripts/` | 拷贝在 N₀-VTLA fork 中 |
+| N₀-VTLA 侧代码：转换脚本、1A 实现、一键脚本的拷贝 | fork `git@github.com:guningquan/N0-VTLA.git` 的分支 `dir1a`；本地 worktree 在 `/mnt/ssd2/guningquan/Programs_server/N0-VTLA-1A`，一键脚本在 `experiments/neosim_sim/` | 是 |
 
 ## 2. 每次使用前（必做）
 

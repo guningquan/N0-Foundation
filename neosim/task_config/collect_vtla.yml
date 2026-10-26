@@ -1,0 +1,24 @@
+save_dir: /mnt/ssd2/guningquan/Dataset/neosim_raw
+
+decimation: 1
+
+save_frequency: 2
+video_frequency: 2
+render_frequency: 0
+
+random_texture: false
+
+use_seed: true
+episode_num: 100
+start_seed: -1        # -1: collect_data.sh auto-resumes from suc_map.txt. parallel_collect.sh maps -1 to seed 0 and writes
+                      # no suc_map.txt: its collected seeds are the hdf5/<seed>.hdf5 names; to resume it, set start_seed
+                      # past the largest one and run scripts/parallel_collect_data.py with --episodes <remaining>.
+max_seed: -1
+
+sensor_type: gsmini
+
+observations:
+  camera: ['rgb']
+  tactile: ['rgb', 'rgb_marker', 'marker', 'depth', 'pose']
+  embodiment: ['joint', 'ee']
+  actor: true

@@ -78,7 +78,8 @@ bash parallel_collect.sh <task> <config> 2,3 4      # 4 个进程，按 GPU 轮�
   - 客户端是 `eval/eval_n0vtla_dual_joint_cl.py`，协议在 `eval/remote_infer_lib/n0vtla_zmq_client.py`，服务端是 `N0-VTLA/scripts/serve_zmq.py`。示例命令见 ServerSetupNotes 第 5 节，一键脚本是 `sim_runs/scripts/eval.sh`。
   - 一个服务端只能接一个客户端，因为服务端每回合只保存一份触觉基准帧。
   - 默认设置：每块执行完整的 16 步，每个动作走 2 个仿真步，种子从 1,000,000 起，逐种子写入 `results.jsonl`。
-  - 步数上限按仿真步计算。每个动作走 1 步还是 2 步会影响成功率，正式评测前要先定。
+  - 步数上限按仿真步计算。2026-10-26 已定：每个动作走 2 步（与训练数据的时间基准一致），评测时步数上限放宽到各任务 `step_lim` 的 1.5 倍，即环境变量 `EVAL_STEP_LIM`：Stack Bowls 4200、Cup Handover 3000、Insert Screw 1950、Place Gears 2925。
+  - 一张卡上同时开的仿真进程不要超过 3 个。开 4 个时，环境重置可能卡住并超时，单次评测也会慢一倍。
 - **其他策略：**
   - 远程服务端：参考 `eval/` 里现有的客户端，有 π0.5、giga、xr0、twam 等，走 WebSocket；
   - 本地加载：按 `docs/Deploy.md`，在 `policy/<名字>/deploy_policy.py` 里实现接口，用 `scripts/eval_policy.py` 评测。
@@ -98,6 +99,6 @@ bash parallel_collect.sh <task> <config> 2,3 4      # 4 个进程，按 GPU 轮�
 | N₀-VTLA 推理服务端 | 8.7 GB |
 | N₀-VTLA 训练（每卡 batch 16） | 36 GB/卡 |
 
-- 一张卡可以同时开 4–5 个仿真进程。
+- 一张卡上同时开的仿真进程最多 3 个（显存够开 5 个，但开到 4 个时触觉凝胶仿真互相抢资源，会严重变慢）。
 - 训练时这张卡基本占满，不要同时在上面跑仿真。
 - N₀-VTLA 的一个 checkpoint 约 22.6 GB（含优化器状态），正式训练要注意保存间隔。

@@ -46,7 +46,7 @@ bash collect_data.sh insert_hole demo 2 0 0 1      # 参数依次为：任务 �
 
 ```bash
 bash collect_data.sh <task> <config> 2              # 单进程
-bash parallel_collect.sh <task> <config> 2,3 4      # 4 个进程，按 GPU 轮流分配
+bash parallel_collect.sh <task> <config> 2,3 2      # 2 个进程，每张卡 1 个（不要多开，见第 5 节）
 ```
 
 - **任务：**`envs/*.py`。双臂 8 个（`dual_*`），单臂 12 个。
@@ -56,7 +56,8 @@ bash parallel_collect.sh <task> <config> 2,3 4      # 4 个进程，按 GPU 轮�
   - `collect_vtla`：100 条，不含 `gel_particle`，`save_dir` 指向 `/mnt/ssd2/guningquan/Dataset/neosim_raw`；
   - `fasteval`：评测用，存储频率低。
 - **输出：**`<save_dir>/<task>/<config>/hdf5/<seed>.hdf5`。并行采集时，已采的种子以 hdf5 文件名为准，不会写 `suc_map.txt`。
-- **速度：**双臂任务一条约 6–8 分钟（`collect_vtla` 约每秒 5.6 个仿真步；`demo` 约 3.8 个）。
+- **中断后续采：**`parallel_collect.sh` 每次都从种子 0 开始，会重采并覆盖已有的回合。续采要直接运行 `scripts/parallel_collect_data.py`，加 `--start-seed <已试过的最大种子 + 1> --episodes <还差的条数>`。已试过的种子包括失败和报错的，记在 `metadata.json` 里。`sim_runs/scripts/collect.sh` 会自动算这两个数。
+- **速度：**Stack Bowls 一条约 8.5 分钟，含重置和保存。回合中 `collect_vtla` 约每秒 5.6 个仿真步，`demo` 约 3.8 个。
 - **大小：**双臂任务每条约 280 MB（`collect_vtla`）或 490 MB（`demo`）。
 
 **双臂 HDF5 的结构：**
@@ -79,7 +80,7 @@ bash parallel_collect.sh <task> <config> 2,3 4      # 4 个进程，按 GPU 轮�
   - 一个服务端只能接一个客户端，因为服务端每回合只保存一份触觉基准帧。
   - 默认设置：每块执行完整的 16 步，每个动作走 2 个仿真步，种子从 1,000,000 起，逐种子写入 `results.jsonl`。
   - 步数上限按仿真步计算。2026-10-26 已定：每个动作走 2 步（与训练数据的时间基准一致），评测时步数上限放宽到各任务 `step_lim` 的 1.5 倍，即环境变量 `EVAL_STEP_LIM`：Stack Bowls 4200、Cup Handover 3000、Insert Screw 1950、Place Gears 2925。
-  - 一张卡上同时开的仿真进程不要超过 3 个。开 4 个时，环境重置可能卡住并超时，单次评测也会慢一倍。
+  - 每张卡只开 1 个仿真客户端，原因见第 5 节。服务端可以和客户端同卡。
 - **其他策略：**
   - 远程服务端：参考 `eval/` 里现有的客户端，有 π0.5、giga、xr0、twam 等，走 WebSocket；
   - 本地加载：按 `docs/Deploy.md`，在 `policy/<名字>/deploy_policy.py` 里实现接口，用 `scripts/eval_policy.py` 评测。
@@ -99,6 +100,8 @@ bash parallel_collect.sh <task> <config> 2,3 4      # 4 个进程，按 GPU 轮�
 | N₀-VTLA 推理服务端 | 8.7 GB |
 | N₀-VTLA 训练（每卡 batch 16） | 36 GB/卡 |
 
-- 一张卡上同时开的仿真进程最多 3 个（显存够开 5 个，但开到 4 个时触觉凝胶仿真互相抢资源，会严重变慢）。
+- **每张卡只开 1 个仿真进程，采集和评测都一样。**显存够开 5 个，但多开得不偿失（2026-10-26 正式采集 Stack Bowls 时实测）：
+  - **快不了多少：**每卡 1 个进程，一个回合连重置和保存约 8.5 分钟；每卡 3 个进程，每个回合要 15–23 分钟。不出错时，每卡的产出只比 1 个进程多 10–60%，因为 GPU 已经跑满；
+  - **会出错：**环境重置时，UIPC 的线性求解（PCG）要迭代很多次，每次迭代都要等 GPU 同步。几个进程轮流占用 GPU 时，每次同步都要排队，重置阶段一步会从不到 1 秒变成 5–8 分钟，最后超过 `reset_time_limit`（Stack Bowls 为 1200 秒）而报错。每卡 3 个进程时，前 11 个回合里有 5 个这样报错，近一小时只存下 5 条；改成每卡 1 个进程后，两张卡每小时约跑 14 个回合。py-spy 栈：`LinearPCG::pcg` → `cublasDotEx` → `cuMemcpyDtoHAsync`。
 - 训练时这张卡基本占满，不要同时在上面跑仿真。
 - N₀-VTLA 的一个 checkpoint 约 22.6 GB（含优化器状态），正式训练要注意保存间隔。

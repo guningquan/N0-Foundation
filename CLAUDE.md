@@ -5,6 +5,7 @@ NeoSim 在 `neosim/`，在本服务器上已装好、可直接用。先读 `neos
 本服务器上必须遵守：
 
 - **只用 GPU 2、3。**其他卡上是别人的任务。`collect_data.sh` / `parallel_collect.sh` 的 GPU 参数会直接设成 `CUDA_VISIBLE_DEVICES`，填物理编号 2 或 3。
+- **每张卡只开 1 个仿真进程**，采集和评测都一样。多开快不了多少，还会让环境重置慢到超时报错，原因见 QuickStart 第 5 节。
 - **运行任何仿真前：**
   ```bash
   source /mnt/ssd1/guningquan/miniforge3/etc/profile.d/conda.sh

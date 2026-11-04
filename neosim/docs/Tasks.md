@@ -82,20 +82,20 @@ NeoSim ships 20 task implementations: the **12 NeoSim benchmark tasks** of NeoBe
 
 ### insert_tube
 - **Goal**: Insert a test tube into a tilted (−30° about y) test-tube slot.
-- **Objects/assets**: `TestTubeSlot.usd` (density 1e5), `TestTubeBase.usd` (density 1e5), `TestTube.usd` (density 10) (`envs/insert_tube.py:12-34`).
+- **Objects/assets**: `TestTubeSlot.usd` (density 1e5), `TestTubeBase.usd` (density 1e5), `TestTube.usd` (density 10) (`envs/insert_tube.py:14-36`).
 - **Action flow**:
-  1. pre_move: grasp tube near top (z bias uniform `[0.095, 0.10]`); record in-hand pose (`envs/insert_tube.py:41-59`).
-  2. pre_move: lift z +0.15; place toward `try_pose = hole_pose + signed xy noise 1–4 mm`, where `hole_pose = slot + [-0.008, 0, 0.077]` rotated `[0, -pi/6, 0]` (`envs/insert_tube.py:61-81`).
+  1. pre_move: grasp tube near top (z bias uniform `[0.095, 0.10]`); record in-hand pose (`envs/insert_tube.py:43-61`).
+  2. pre_move: lift z +0.15; place toward `try_pose = hole_pose + signed xy noise 1–4 mm`, where `hole_pose = slot + [-0.008, 0, 0.077]` rotated `[0, -pi/6, 0]` (`envs/insert_tube.py:63-83`).
   3. `try_forward` 0.02 in 0.01 increments (advance along gripper local z; abort a step if the tube stops moving).
-  4. If mid-success not reached (rel xy `< 0.005`, rel z `< -0.02`, `dot > 0.99`, `envs/insert_tube.py:100-103`): re-place exactly onto `hole_pose` and `try_forward` again.
-  5. Final push z −0.04 along the tube axis (dilation 0.2); delay 20 (`envs/insert_tube.py:83-98`).
-- **Success criteria** (`envs/insert_tube.py:114-122`): with `prism_pose = tube rebased to hole_pose` (tilted frame):
-  - `prism_pose.p[:2] < [0.005, 0.005]` — **one-sided as coded, no `abs`** (see Known quirks #2);
+  4. If mid-success not reached (rel `|x|, |y| < 0.005`, rel z `< -0.02`, `dot > 0.99`, `envs/insert_tube.py:102-106`): re-place exactly onto `hole_pose` and `try_forward` again.
+  5. Final push z −0.04 along the tube axis (dilation 0.2); delay 20 (`envs/insert_tube.py:85-100`).
+- **Success criteria** (`envs/insert_tube.py:117-126`): with `prism_pose = tube rebased to hole_pose` (tilted frame):
+  - `|x| < 0.005` and `|y| < 0.005` (2026-11-04, ForceGuide; upstream compared the signed offsets `prism_pose.p[:2] < [0.005, 0.005]`, so any offset to −x / −y passed; the mid-success check of step 4 had the same one-sided test and was fixed with it);
   - `z < -0.03` — inserted at least 0.03 m along the tilted axis;
   - `dot(tube local z-axis, hole [0, 0, 1]) > 0.965` — within ≈15°;
   - in-hand slip `< 0.03` m.
-- **Failure modes**: early stop when in-hand slip `> 0.03` m (`envs/insert_tube.py:105-112`). Shared timeout at default `step_lim = 300`.
-- **Tunables**: placement noise `[0.001, 0.004]` m signed, hole bias `[-0.008, 0, 0.077]`, tilt `-pi/6` inline (`envs/insert_tube.py:62-66`).
+- **Failure modes**: early stop when in-hand slip `> 0.03` m (`envs/insert_tube.py:108-115`). Timeout `step_lim = 900` (`envs/insert_tube.py:7`).
+- **Tunables**: placement noise `[0.001, 0.004]` m signed, hole bias `[-0.008, 0, 0.077]`, tilt `-pi/6` inline (`envs/insert_tube.py:64-68`).
 
 ### insert_USB
 - **Goal**: Peg-in-hole insertion — the gripper starts already holding a USB plug (plug facing down) and inserts it into a slot.

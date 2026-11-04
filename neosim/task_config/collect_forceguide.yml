@@ -1,0 +1,29 @@
+# ForceGuide (forceguide repo, scripts/neosim): collect_vtla plus the per-vertex contact force, so that a force-field CPM
+# can be trained later (scripts/tactile_tools/contact_force_to_field.py). Default 169-node gelpad, as in collect_vtla.
+
+save_dir: /mnt/ssd2/guningquan/Dataset/neosim_raw
+
+decimation: 1
+
+save_frequency: 2
+video_frequency: 2
+render_frequency: 0
+
+random_texture: false
+
+use_seed: true
+episode_num: 100
+start_seed: -1        # -1: collect_data.sh auto-resumes from suc_map.txt. parallel_collect.sh maps -1 to seed 0 and writes
+                      # no suc_map.txt: its collected seeds are the hdf5/<seed>.hdf5 names; to resume it, run
+                      # scripts/parallel_collect_data.py with --start-seed <largest seed tried + 1> --episodes <remaining>
+                      # (tried seeds, failed and errored ones included, are the keys of metadata.json).
+max_seed: -1
+min_reset_time_limit: 1200   # parallel_collect_data.py: raise shorter task limits (dual_screw_sleeve: 600 s) to this
+
+sensor_type: gsmini
+
+observations:
+  camera: ['rgb']
+  tactile: ['rgb', 'rgb_marker', 'marker', 'depth', 'pose', 'vertex_force']   # vertex_force: rebuild force_field offline (ForceGuide)
+  embodiment: ['joint', 'ee']
+  actor: true

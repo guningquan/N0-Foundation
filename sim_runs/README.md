@@ -9,8 +9,12 @@ N₀-VTLA 在 NeoSim（`neosim/`）里做仿真实验用的脚本，以及让 Is
 | `scripts/collect.sh`、`collect_all.sh`、`formal_data.sh` | S3：用脚本专家采集演示，可断点续采；`formal_data.sh` 采完每个任务后在后台做转换和统计 |
 | `scripts/convert.sh` | S4：HDF5 转 LeRobot，并计算 norm stats |
 | `scripts/stats_1a.sh` | S6：1A 的接触统计（只用 CPU） |
-| `scripts/train.sh` | S5 / S7：训练 B0-sim / 1A-sim |
+| `scripts/train.sh` | S5 / S7：训练 B0-sim / 1A-RULE-sim / 1A-SCORE-sim（`b0`、`1a_rule`、`1a_score`） |
 | `scripts/eval.sh`、`compare_eval.py` | S2 / S5 / S8：在 NeoSim 里闭环评测，并比较评测结果 |
+| `scripts/train_chain.sh` | 在同两张卡上依次训练几个变体，每个训完只留最后一个 checkpoint，再用 1 张空闲卡评测（总共最多 3 张卡）：`train_chain.sh <task> <train_gpus> <variant...>` |
+| `scripts/prune_after_train.sh`、`eval_watchdog.sh` | 训练进程退出后删掉中间 checkpoint；评测卡死（客户端日志 20 分钟不动）时记下种子，从下一个种子重启 |
+| `scripts/replay.sh`（`neosim/eval/replay_n0vtla_dual_joint.py`）、`offline_check.sh` / `.py` | 诊断：把专家关节轨迹开环回放进评测客户端；在专家演示上做 teacher-forced 的离线检查 |
+| `scripts/joint_spread.py`、`ik_branch_test.py` | 诊断 7 自由度臂零空间分支：演示之间的关节离散度；cuRobo 规划选到的分支（Cup Handover，见 `neosim/task_config/collect_vtla_ikrank.yml`） |
 | `constraints_neosim.txt` | UniVTAC 环境的 pip 版本约束 |
 | `vk_layer/` | Vulkan 补丁层的源码和 manifest：驱动 595 报告的 `maxMemoryAllocationSize` 是 UINT64_MAX，会让 Isaac Sim 4.5 崩溃，这一层把它截断 |
 | `vcpkg-overlays/tinygltf/` | tinygltf 2.9.3 的 vcpkg overlay port（换成当前的源码包哈希） |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # S2 / S5 / S8: evaluate one policy in NeoSim (N₀-VTLA：仿真实验.md).
-#   usage: eval.sh released|b0|1a_rule <task>
+#   usage: eval.sh released|b0|1a_rule|1a_score <task>
 #   env:   SERVER_GPU (3) CLIENT_GPU (2) PORT (5557) TOTAL (100) START_SEED (1000000)
 #          TASK_CONFIG (fasteval) STEPS_PER_ACTION (2) CKPT_STEP (20000) TAG_SUFFIX ("")
 #          EXP_SUFFIX ("", as in train.sh) ASSET_ID (task asset) EVAL_STEP_LIM (1.5x task step_lim, tasks.sh)
@@ -13,14 +13,20 @@ SERVER_GPU=${SERVER_GPU:-3}; CLIENT_GPU=${CLIENT_GPU:-2}; PORT=${PORT:-5557}
 TOTAL=${TOTAL:-100}; START_SEED=${START_SEED:-1000000}; TASK_CONFIG=${TASK_CONFIG:-fasteval}
 STEPS_PER_ACTION=${STEPS_PER_ACTION:-2}; CKPT_STEP=${CKPT_STEP:-20000}
 unset VTLA_1A_STATS
+# every policy is served from the N0-VTLA-1A worktree (same code as train.sh; see the note there)
+REPO=$N0VTLA_1A
 case "$VARIANT" in
-  released) REPO=$N0VTLA; CONFIG=sim_dual_arm_tactile
+  released) CONFIG=sim_dual_arm_tactile
             CKPT=$N0VTLA/checkpoints/n0_VTLA_dual_bowl_place_stack; ASSET=n0_dual_bowl_place_stack_norm ;;
-  b0)       REPO=$N0VTLA; CONFIG=sim_dual_arm_tactile
-            CKPT=$N0VTLA/checkpoints/sim_dual_arm_tactile/b0sim_$SHORT${EXP_SUFFIX:-}/$CKPT_STEP; ASSET=${ASSET_ID:-$(task_asset "$TASK")} ;;
-  1a_rule)  REPO=$N0VTLA_1A; CONFIG=sim_dual_1a_rule
+  b0)       CONFIG=sim_dual_arm_tactile
+            CKPT=$N0VTLA_1A/checkpoints/sim_dual_arm_tactile/b0sim_$SHORT${EXP_SUFFIX:-}/$CKPT_STEP; ASSET=${ASSET_ID:-$(task_asset "$TASK")} ;;
+  1a_rule)  CONFIG=sim_dual_1a_rule
             CKPT=$N0VTLA_1A/checkpoints/sim_dual_1a_rule/1a_rulesim_$SHORT${EXP_SUFFIX:-}/$CKPT_STEP; ASSET=${ASSET_ID:-$(task_asset "$TASK")}
             export VTLA_1A_STATS=$N0VTLA_1A/assets/sim_dual_1a_rule/$ASSET/tactile_contact_stats.json ;;
+  1a_score) CONFIG=sim_dual_1a_score
+            CKPT=$N0VTLA_1A/checkpoints/sim_dual_1a_score/1a_scoresim_$SHORT${EXP_SUFFIX:-}/$CKPT_STEP; ASSET=${ASSET_ID:-$(task_asset "$TASK")}
+            export VTLA_1A_STATS=$N0VTLA_1A/assets/sim_dual_1a_rule/$ASSET/tactile_contact_stats.json
+            export VTLA_1A_SCORER=${VTLA_1A_SCORER:-$N0VTLA_1A/assets/sim_dual_1a_score/$ASSET/contact_scorer.pt} ;;
   *) echo "unknown variant $VARIANT" >&2; exit 1 ;;
 esac
 TAG=${VARIANT}_${SHORT}${TAG_SUFFIX:-}

@@ -88,7 +88,16 @@ class CuroboPlanner:
         )
         self.motion_gen = MotionGen(motion_gen_config)
         self.motion_gen.warmup()
-    
+        # UNIVTAC_PLAN_NEAREST_IK=1: unconstrained plan_path moves go to the converged IK solution nearest
+        # to the start joints, planned in joint space (plan_single_js). plan_single leaves the null-space
+        # branch of a 7-DoF arm to its trajopt seeds, so it is effectively random: Cup Handover demos reached
+        # the same grasp pose with j1/j3 spread over ~0.5 rad, and a joint-space policy mixed the branches
+        # (N₀-VTLA：仿真实验.md §10.7). Raising the IK null-space ranking weight did not help, because
+        # trajopt picks among several IK seeds by its own cost. Default off; falls back to plan_single.
+        self.nearest_ik = os.environ.get('UNIVTAC_PLAN_NEAREST_IK', '0') == '1'
+        if self.nearest_ik:
+            print(f"[CuroboPlanner] nearest-IK joint-space planning on ({self.robot_prime_path})", flush=True)
+
     def reset(self):
         self.motion_gen.reset()
 
@@ -177,9 +186,41 @@ class CuroboPlanner:
 
         if pose_cost_metric is not None:
             plan_config.pose_cost_metric = pose_cost_metric
+        elif self.nearest_ik:
+            result = self._plan_nearest_ik(start_joint_states, goal_pose_of_ee, plan_config)
+            if result is not None:
+                return result
 
-        return self.motion_gen.plan_single(
+        result = self.motion_gen.plan_single(
             start_joint_states, goal_pose_of_ee, plan_config)
+        if self.nearest_ik and pose_cost_metric is None and not bool(result.success.item()):
+            print(f"[CuroboPlanner] plan failed ({self.robot_prime_path}): nearest-IK {self._nik_info}; "
+                  f"plan_single {result.status}; start {np.round(joint_pos.cpu().numpy().reshape(-1), 4).tolist()} "
+                  f"goal {np.round(target_pose.tolist(), 4).tolist()}", flush=True)
+        return result
+
+    def _plan_nearest_ik(self, start_joint_states, goal_pose_of_ee, plan_config):
+        """Joint-space plan to the converged IK solution nearest to the start (or to the arm's
+        ik_reference, if its robot manager sets one); None if IK or planning fails."""
+        q0 = start_joint_states.position
+        # Nearest-to-start fails when the start is far from the goal: Cup Handover's arm B went from home to a
+        # receive pose with j2 at its limit, and from there no collision-free IK existed for the place pose.
+        # A task can instead pin an arm to a fixed posture family (owning_manager.ik_reference).
+        ref = getattr(getattr(self, 'owning_manager', None), 'ik_reference', None)
+        q_ref = q0 if ref is None else self.motion_gen.tensor_args.to_device(ref).view(1, -1)
+        ik = self.motion_gen.solve_ik(goal_pose_of_ee, retract_config=q_ref.clone(),
+                                      seed_config=torch.cat([q0, q_ref]).view(1, 2, -1).clone(), return_seeds=32)
+        ok = ik.success.view(-1)
+        if not bool(ok.any()):
+            self._nik_info = "IK no solution"
+            return None
+        sols = ik.solution.view(-1, q0.shape[-1])[ok]
+        best = sols[torch.argmin(torch.linalg.norm(sols - q_ref, dim=-1))]
+        goal_state = JointState.from_position(best.view(1, -1), joint_names=self.active_joints_name)
+        result = self.motion_gen.plan_single_js(start_joint_states, goal_state, plan_config)
+        self._nik_info = (f"{int(ok.sum())} IK sols, best {np.round(best.cpu().numpy(), 4).tolist()}, "
+                          f"plan_single_js {result.status}")
+        return result if bool(result.success.item()) else None
 
     def solve_ik(self, target_ee_pose, real_robot_pose, curr_joint_pos=None):
         # direct single-shot IK (no trajectory planning) -- fast, avoids curobo plan_single GPU contention

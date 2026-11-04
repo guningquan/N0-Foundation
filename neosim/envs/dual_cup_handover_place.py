@@ -161,6 +161,10 @@ class Task(BaseTask):
         # viewer but kept as a harmless non-ignored actor so cuRobo does not get an
         # empty actor world.
         self._robot_manager_b.ignore_actors = {"cup", "target_plate"}
+        # UNIVTAC_PLAN_NEAREST_IK=1 only: B's IK picks the solution nearest to this posture (the most common
+        # receive joints of the original collect_vtla demos, which also placed fine) instead of nearest to the
+        # start; nearest to home put B at the j2 limit and the place move then had no IK (N₀-VTLA：仿真实验.md §10.7).
+        self._robot_manager_b.ik_reference = [-0.21, 0.57, 0.57, -2.13, 1.68, 1.96, -1.91]
 
     # ---------------------------------------------------------------- actors
     def create_actors(self):

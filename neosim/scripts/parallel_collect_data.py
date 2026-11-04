@@ -42,7 +42,7 @@ def split_devices(cuda_visible_devices: str, workers: int):
 
 def worker_run(task_config, task_file_name, base_save_dir: Path, seed_q: Queue,
                progress, stop_event: Event, log_file: Path, device_list,
-               status_dict, result_q: Queue):
+               status_dict, result_q: Queue, exit_on_error: bool = False):
     # Per-process env: assign CUDA devices
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(device_list) if device_list else ''
 
@@ -87,6 +87,9 @@ def worker_run(task_config, task_file_name, base_save_dir: Path, seed_q: Queue,
                 tac.append("gel_particle")
         env_cfg.random_texture = task_config.get("random_texture", False)
         env_cfg.ground_plate_color = task_config.get("ground_plate_color", env_cfg.ground_plate_color)
+        # optional floor for the task's reset time limit (e.g. dual_screw_sleeve ships 600 s, and its UIPC reset
+        # occasionally needs 5+ min without anything else on the GPU)
+        env_cfg.reset_time_limit = max(env_cfg.reset_time_limit, float(task_config.get("min_reset_time_limit", 0)))
         env_cfg.scene.num_envs = 1
         # Device routing by CUDA env
 
@@ -154,6 +157,11 @@ def worker_run(task_config, task_file_name, base_save_dir: Path, seed_q: Queue,
                     'traceback': traceback.format_exc(),
                 })
                 task.clean_cache(mean_steps=mean_steps, result='error')
+                if exit_on_error:
+                    # A reset timeout can leave the UIPC scene so slow that every later reset in this
+                    # process times out too; quit and let main() start a fresh worker on the same GPU.
+                    status_dict['state'] = 'restart'
+                    break
                 continue
 
             if task.plan_success and task.check_success() and not task.check_early_stop():
@@ -224,6 +232,10 @@ def main():
     parser.add_argument("config", type=str, help="Config file name")
     parser.add_argument("--workers", type=int, default=2, help="Number of worker processes")
     parser.add_argument("--episodes", type=int, default=None, help="Total successful episodes to collect (override config episode_num)")
+    parser.add_argument("--start-seed", type=int, default=None, help="First seed to try (override config start_seed); use it to resume a run")
+    parser.add_argument("--restart-on-error", action="store_true",
+                        help="A worker whose episode errors exits and is replaced by a fresh one on the same GPU")
+    parser.add_argument("--max-restarts", type=int, default=200, help="Total worker restarts allowed with --restart-on-error")
     parser.add_argument("--gpu", type=str, default=os.environ.get('CUDA_VISIBLE_DEVICES', ''),
                         help="CUDA_VISIBLE_DEVICES list to split among workers")
     args = parser.parse_args()
@@ -259,8 +271,8 @@ def main():
         with open(clean_log, 'a') as f:
             f.write(stamped + '\n')
 
-    # Start seed logic: use config start_seed if provided, else 0
-    start_seed = task_config.get("start_seed", 0)
+    # Start seed logic: use --start-seed, else config start_seed if provided, else 0
+    start_seed = args.start_seed if args.start_seed is not None else task_config.get("start_seed", 0)
     if start_seed is None or start_seed < 0:
         start_seed = 0
     next_seed = start_seed
@@ -286,18 +298,19 @@ def main():
     write_clean(task_json)
     write_out(task_json)
 
-    workers = []
-    worker_status = []
-    for w in range(args.workers):
-        status_proxy = manager.dict()
-        worker_status.append(status_proxy)
+    def start_worker(w):
         p = Process(
             target=worker_run,
             name=f"Worker-{w+1}",
-            args=(task_config, args.task, base_save_dir, seed_q, progress, stop_event, out_log, assignments[w], status_proxy, result_q)
+            args=(task_config, args.task, base_save_dir, seed_q, progress, stop_event, out_log, assignments[w],
+                  worker_status[w], result_q, args.restart_on_error)
         )
         p.start()
-        workers.append(p)
+        return p
+
+    worker_status = [manager.dict() for _ in range(args.workers)]
+    workers = [start_worker(w) for w in range(args.workers)]
+    restarts = 0
 
     pbar_io = io.StringIO()
     pbar = tqdm(total=target_episodes, file=pbar_io, ncols=100)
@@ -310,7 +323,16 @@ def main():
             seed_q.put(next_seed)
             next_seed += 1
 
-        while any(p.is_alive() for p in workers):
+        while True:
+            if args.restart_on_error and not stop_event.is_set():
+                for w, p in enumerate(workers):
+                    if not p.is_alive() and restarts < args.max_restarts:
+                        p.join()
+                        restarts += 1
+                        write_clean(f"Worker-{w+1:2} exited (code {p.exitcode}); starting a fresh one ({restarts} restarts)")
+                        workers[w] = start_worker(w)
+            if not any(p.is_alive() for p in workers):
+                break
             done = progress.get('done', 0)
             # Drain results queue and log clean summaries
             while True:
